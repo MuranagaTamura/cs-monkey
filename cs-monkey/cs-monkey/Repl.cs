@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CsMonkey.Object;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,6 +11,8 @@ namespace CsMonkey
 
     public void Start()
     {
+      Object.Environment environment = new Object.Environment();
+
       while (true)
       {
         Console.Write(PROMPT);
@@ -31,8 +34,16 @@ namespace CsMonkey
           continue;
         }
 
-        // パースした結果を表示する
-        Console.WriteLine(program);
+        // 評価器を起動
+        Evaluator evaluator = new Evaluator();
+        
+        // 評価器で評価開始
+        IObject result =  evaluator.Eval(program, environment);
+        if(result != null)
+        {
+          // 評価結果がNullではなかった
+          Console.WriteLine($"{result.Inspect()}");
+        }
       }
     }
 
