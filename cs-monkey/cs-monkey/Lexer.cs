@@ -161,6 +161,13 @@
       }
     }
 
+    private string SafeSubString(string text, int start, int length)
+    {
+      if (start >= text.Length) /* startが範囲外 */ return "";
+      if (start + length >= text.Length) /* start + lengthが範囲外 */ return text.Substring(start);
+      return text.Substring(start, length);
+    }
+
     private string ReadIdentifier()
     {
       int position = this.position;
@@ -172,7 +179,7 @@
       }
 
       // 開始位置から[a-zA-Z_]かEOFまでの文字列を返す
-      return input.Substring(position, this.position - position);
+      return SafeSubString(input, position, this.position - position);
     }
 
     private string ReadNumber()
@@ -186,7 +193,7 @@
       }
 
       // 開始位置から[0-9]かEOFまでの文字列を返す
-      return input.Substring(position, this.position - position + 1);
+      return SafeSubString(input, position, this.position - position);
     }
 
     private void SkipWhiteSpace()

@@ -20,11 +20,26 @@ namespace CsMonkey
 
         // レキサー開始
         Lexer lexer = new Lexer(scanned);
+        // パーサー開始
+        Parser parser = new Parser(lexer);
 
-        // レキサーの結果を表示
-        for (Token token = lexer.NextToken(); token.TokenType != Token.Type.EOF; token = lexer.NextToken())
-          Console.WriteLine($"{token}");
+        // パースしてエラーがあったら表示する
+        Ast.Program program = parser.ParseProgram();
+        if(parser.errors.Count != 0)
+        {
+          PrintParseErrors(parser.errors);
+          continue;
+        }
+
+        // パースした結果を表示する
+        Console.WriteLine(program);
       }
+    }
+
+    private void PrintParseErrors(IList<string> errors)
+    {
+      foreach (string error in errors)
+        Console.WriteLine($"\t{error}");
     }
   } // class
 } // namespace

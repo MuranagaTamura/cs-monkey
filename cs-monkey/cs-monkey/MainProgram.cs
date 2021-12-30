@@ -2,7 +2,7 @@
 
 namespace CsMonkey
 {
-  class Program
+  class MainProgram
   {
     static void Main(string[] args)
     {
