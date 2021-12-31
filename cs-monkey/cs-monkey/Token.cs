@@ -33,6 +33,7 @@ namespace CsMonkey
       // 識別子 + リテラル
       IDENT,
       INT,
+      STRING,
 
       // 演算子
       ASSIGN, // =
@@ -51,11 +52,14 @@ namespace CsMonkey
       // デリミタ
       COMMA, // ,
       SEMICOLON, // ;
+      COLON, // :
 
       LPAREN, // (
       RPAREN, // )
       LBRACE, // {
       RBRACE, // }
+      LBRACKET, // [
+      RBRACKET, // ]
 
       // キーワード
       FUNCTION,

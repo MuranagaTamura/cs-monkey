@@ -9,6 +9,12 @@ namespace CsMonkey
 
   public class Parser
   {
+    // %left "==" "!="
+    // %left "<" ">"
+    // %left "+" "-"
+    // %left "*" "/"
+    // %left "("
+    // %left "["
     public enum Precedence
     {
       LOWEST,
@@ -18,6 +24,7 @@ namespace CsMonkey
       PRODUCT, // *, /, %
       PREFIX, // -X, !X
       CALL, // X(Y)
+      INDEX, // X[Y]
     }
 
     public Lexer lexer;
@@ -37,6 +44,7 @@ namespace CsMonkey
       { Token.Type.ASTERISK, Precedence.PRODUCT },
       { Token.Type.SLASH, Precedence.PRODUCT },
       { Token.Type.LPAREN, Precedence.CALL },
+      { Token.Type.LBRACKET, Precedence.INDEX },
     };
 
     public Precedence CurrentPrecedence
@@ -62,6 +70,9 @@ namespace CsMonkey
       prefixParseFuncs[Token.Type.LPAREN] = ParseGroupedExpression;
       prefixParseFuncs[Token.Type.IF] = ParseIfExpression;
       prefixParseFuncs[Token.Type.FUNCTION] = ParseFunctionLiteral;
+      prefixParseFuncs[Token.Type.STRING] = ParseStringLiteral;
+      prefixParseFuncs[Token.Type.LBRACKET] = ParseArrayLiteral;
+      prefixParseFuncs[Token.Type.LBRACE] = ParseHashLiteral;
 
       // infixParseFuncsに関数を登録する
       infixParseFuncs[Token.Type.EQ] = ParseInfixExpression;
@@ -73,6 +84,7 @@ namespace CsMonkey
       infixParseFuncs[Token.Type.ASTERISK] = ParseInfixExpression;
       infixParseFuncs[Token.Type.SLASH] = ParseInfixExpression;
       infixParseFuncs[Token.Type.LPAREN] = ParseCallExpression;
+      infixParseFuncs[Token.Type.LBRACKET] = ParseIndexExpression;
     }
 
     private bool ExpectPeek(Token.Type type)
@@ -119,7 +131,7 @@ namespace CsMonkey
         if (statement != null)
         {
           // Statementがパースできたら
-          program.Statements.Add(statement);
+          program.statements.Add(statement);
         }
 
         // 現在とピークであるトークンを更新する
@@ -143,7 +155,7 @@ namespace CsMonkey
       }
     }
 
-    // ExpressionStatement ::= Expression ";"
+    // ExpressionStatement ::= Expression ( ";" )?
     private ExpressionStatement ParseExpressionStatement()
     {
       ExpressionStatement statement = new ExpressionStatement();
@@ -210,12 +222,8 @@ namespace CsMonkey
       return statement;
     }
 
-    // Expression ::= Identifier ( InfixExpression )*
-    //              | IntergerLiteral ( InfixExpression )*
-    //              | Boolean ( InfixExpression )*
-    //              | GroupedExpression ( InfixExpression )*
-    //              | IfExpression ( InfixExpression )*
-    //              | FunctionLiteral ( InfixExpression )*
+    // Expression ::= InfixExpression
+    //              | PrefixExpression
     private IExpression ParseExpression(Precedence precedence)
     {
       PrefixParseFunc prefix;
@@ -251,13 +259,13 @@ namespace CsMonkey
       return left;
     }
 
-    // Identifier ::= <Identifier>
+    // PrefixExpression ::= <Identifier>
     private Identifier ParseIdentifier()
     {
       return new Identifier() { token = currentToken, value = currentToken.Literal };
     }
 
-    // IntegerLiteral ::= <IntegerLiteral>
+    // PrefixExpression ::= <IntegerLiteral>
     private IntegerLiteral ParseIntegerLiteral()
     {
       IntegerLiteral literal = new IntegerLiteral();
@@ -275,8 +283,8 @@ namespace CsMonkey
       return literal;
     }
 
-    // Boolean ::= "true"
-    //           | "false"
+    // PrefixExpression ::= "true"
+    //                    | "false"
     private Ast.Boolean ParseBoolean()
     {
       return new Ast.Boolean()
@@ -286,7 +294,7 @@ namespace CsMonkey
       };
     }
 
-    // GroupedExpression ::= "(" Expression ")"
+    // PrefixExpression ::= "(" Expression ")"
     private IExpression ParseGroupedExpression()
     {
       // 現在のトークンである前置演算子"("を更新
@@ -302,7 +310,8 @@ namespace CsMonkey
       return expression;
     }
 
-    // IfExpression ::= "if" "(" Expression ")" "{" BlockStatement ( "else" "{" BlockStatement )?
+    // PrefixExpression ::= "if" "(" Expression ")"
+    //                      "{" BlockStatement ( "else" "{" BlockStatement )?
     private IfExpression ParseIfExpression()
     {
       IfExpression expression = new IfExpression();
@@ -343,7 +352,7 @@ namespace CsMonkey
       return expression;
     }
 
-    // FunctionLiteral ::= "fn" "(" FunctionParameters "{" BlockStatement
+    // PrefixExpression ::= "fn" "(" FunctionParameters "{" BlockStatement
     private FunctionLiteral ParseFunctionLiteral()
     {
       FunctionLiteral literal = new FunctionLiteral();
@@ -429,19 +438,71 @@ namespace CsMonkey
       return identifiers;
     }
 
-    // InfixExpression ::= EqualsExpression
-    // EqualsExpression ::= "==" LessGreaterExpression
-    //                    | "!=" LessGreaterExpression
-    //                    | LessGreaterExpression
-    // LessGreaterExpression ::= "<" SumExpression
-    //                         | ">" SumExpression
-    //                         | SumExpression
-    // SumExpression ::= "+" ProductExpression
-    //                 | "-" ProductExpression
-    //                 | ProductExpression
-    // ProductExpression ::= "*" PrefixExpression
-    //                     | "/" PrefixExpression
-    //                     | "(" CallExpression
+    // PrefixExpression ::= <StringLiteral>
+    private StringLiteral ParseStringLiteral()
+      => new StringLiteral() { token = currentToken, value = currentToken.Literal };
+
+    // PrefixExpression ::= "[" ExpressionList "]"
+    private ArrayLiteral ParseArrayLiteral()
+    {
+      ArrayLiteral arrayLiteral = new ArrayLiteral();
+      arrayLiteral.token = currentToken;
+
+      arrayLiteral.elements = ParseExpressionList(Token.Type.RBRACKET);
+
+      return arrayLiteral;
+    }
+
+    // PrefixExpression ::= "{" ( Expression ":" Expression ( "," Expression ":" Expression ) )? "}"
+    private HashLiteral ParseHashLiteral()
+    {
+      HashLiteral hashLiteral = new HashLiteral();
+      hashLiteral.token = currentToken;
+      
+      while(peekToken.TokenType != Token.Type.RBRACE)
+      {
+        // ピークトークンが"}"だった
+        NextToken();
+        // ハッシュのキーである式をパースする
+        IExpression key = ParseExpression(Precedence.LOWEST);
+
+        if (!ExpectPeek(Token.Type.COLON))
+          // ピークトークンが":"ではなかった
+          return null;
+
+        NextToken();
+        // ハッシュの値である式をパースする
+        IExpression value = ParseExpression(Precedence.LOWEST);
+
+        hashLiteral.pairs[key] = value;
+
+        if(peekToken.TokenType != Token.Type.RBRACE && !ExpectPeek(Token.Type.COMMA))
+        {
+          // ピークトークンが"}"だったらその時点で終了
+          // しかし、上記内容でないなら、ピークトークンが","であるはず
+          // つまり、ペア―の区切りがあるはずである
+          // それがない場合はどこが区切りか判断できないので、nullを返す
+          return null;
+        }
+      }
+
+      if (!ExpectPeek(Token.Type.RBRACE))
+        // ピークトークンが"}"ではない
+        return null;
+
+      return hashLiteral;
+    }
+
+    // InfixExpression ::= Expression "==" Expression
+    //                   | Expression "!=" Expression
+    //                   | Expression "<" Expression
+    //                   | Expression ">" Expression
+    //                   | Expression "+" Expression
+    //                   | Expression "-" Expression
+    //                   | Expression "*" Expression
+    //                   | Expression "/" Expression
+    //                   | Expression "(" CallExpression
+    //                   | Expression "[" IndexExpression
     private InfixExpression ParseInfixExpression(IExpression left)
     {
       InfixExpression expression = new InfixExpression();
@@ -457,8 +518,10 @@ namespace CsMonkey
       return expression;
     }
 
-    // PrefixExpression ::= "!" Expression
-    //                    | "-" Expression
+    // MEMO: "%prec"の後に配置されているトークンと同じ優先度にする
+    //       つまり、"-"と"!"は"*"と同じ優先度を持つ
+    // PrefixExpression ::= "-" Expression %prec "*"
+    //                    | "!" Expression %prec "*"
     private PrefixExpression ParsePrefixExpression()
     {
       PrefixExpression expression = new PrefixExpression();
@@ -474,47 +537,64 @@ namespace CsMonkey
       return expression;
     }
 
-    // CallExpression ::= CallArguments
+    // CallExpression ::= "(" ExpressionList ")"
     private CallExpression ParseCallExpression(IExpression function)
     {
       CallExpression expression = new CallExpression();
       expression.token = currentToken;
       expression.function = function;
-      expression.arguments = ParseCallArguments();
+      expression.arguments = ParseExpressionList(Token.Type.RPAREN);
       return expression;
     }
 
-    // CallArguments ::= ( Expression ( "," Expression )* )? ")"
-    private IList<IExpression> ParseCallArguments()
+    // IndexExpresssion ::= "[" Expression "]"
+    private IndexExpression ParseIndexExpression(IExpression left)
     {
-      IList<IExpression> arguments = new List<IExpression>();
-
-      if(peekToken.TokenType == Token.Type.RPAREN)
-      {
-        // ピークトークンが")"だった
-        // 引数指定なし
-        NextToken();
-        return arguments;
-      }
+      IndexExpression indexExpression = new IndexExpression();
+      indexExpression.token = currentToken;
+      indexExpression.left = left;
 
       NextToken();
-      // 第一引数である式をパースする
-      arguments.Add(ParseExpression(Precedence.LOWEST));
+      indexExpression.index = ParseExpression(Precedence.LOWEST);
 
-      // 第二引数から第n引数までの式をパースする
-      while(peekToken.TokenType == Token.Type.COMMA)
-      {
-        // ピークトークンに”,”が存在している
-        NextToken();
-        NextToken();
-        arguments.Add(ParseExpression(Precedence.LOWEST));
-      }
-
-      if (!ExpectPeek(Token.Type.RPAREN))
-        // ピークトークンが")"ではなかった
+      if (!ExpectPeek(Token.Type.RBRACKET))
         return null;
 
-      return arguments;
+      return indexExpression;
+    }
+
+    // ExpressionList ::= ( Expression ( "," Expression )* )*
+    private IList<IExpression> ParseExpressionList(Token.Type end)
+    {
+      IList<IExpression> list = new List<IExpression>();
+
+      if (peekToken.TokenType == end)
+      {
+        // ピークトークンがendだった
+        NextToken();
+        return list;
+      }
+
+      // 第0要素
+      NextToken();
+      list.Add(ParseExpression(Precedence.LOWEST));
+
+      // 第2要素から第n要素まで
+      while (peekToken.TokenType == Token.Type.COMMA)
+      {
+        // ピークトークンが","だった
+        NextToken();
+        NextToken();
+        list.Add(ParseExpression(Precedence.LOWEST));
+      }
+
+      if (!ExpectPeek(end))
+      {
+        // ピークトークンがendではなかった
+        return null;
+      }
+
+      return list;
     }
   } // class
 } // namespace

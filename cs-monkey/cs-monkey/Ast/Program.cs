@@ -5,18 +5,18 @@ namespace CsMonkey.Ast
 {
   public class Program : INode
   {
-    public IList<IStatement> Statements = new List<IStatement>();
+    public IList<IStatement> statements = new List<IStatement>();
 
     public string TokenLiteral
     {
-      get => Statements.Count > 0 ? Statements[0].TokenLiteral : "";
+      get => statements.Count > 0 ? statements[0].TokenLiteral : "";
     }
 
     public override string ToString()
     {
       StringBuilder builder = new StringBuilder();
 
-      foreach (IStatement statement in Statements)
+      foreach (IStatement statement in statements)
         builder.AppendLine(statement.ToString());
 
       return builder.ToString();

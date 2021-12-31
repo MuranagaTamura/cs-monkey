@@ -82,6 +82,9 @@
         case ';':
           token.TokenType = Token.Type.SEMICOLON;
           break;
+        case ':':
+          token.TokenType = Token.Type.COLON;
+          break;
         case '(':
           token.TokenType = Token.Type.LPAREN;
           break;
@@ -93,6 +96,16 @@
           break;
         case '}':
           token.TokenType = Token.Type.RBRACE;
+          break;
+        case '[':
+          token.TokenType = Token.Type.LBRACKET;
+          break;
+        case ']':
+          token.TokenType = Token.Type.RBRACKET;
+          break;
+        case '"':
+          token.TokenType = Token.Type.STRING;
+          token.Literal = ReadString();
           break;
         case '\0':
           token.TokenType = Token.Type.EOF;
@@ -193,6 +206,18 @@
       }
 
       // 開始位置から[0-9]かEOFまでの文字列を返す
+      return SafeSubString(input, position, this.position - position);
+    }
+
+    public string ReadString()
+    {
+      int position = this.position + 1;
+      while(true)
+      {
+        ReadChar();
+        if (ch == '"' || ch == '\0')
+          break;
+      }
       return SafeSubString(input, position, this.position - position);
     }
 
