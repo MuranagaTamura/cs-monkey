@@ -73,7 +73,6 @@ namespace CsMonkey
       prefixParseFuncs[Token.Type.STRING] = ParseStringLiteral;
       prefixParseFuncs[Token.Type.LBRACKET] = ParseArrayLiteral;
       prefixParseFuncs[Token.Type.LBRACE] = ParseHashLiteral;
-      prefixParseFuncs[Token.Type.MACRO] = ParseMacroLiteral;
 
       // infixParseFuncsに関数を登録する
       infixParseFuncs[Token.Type.EQ] = ParseInfixExpression;
@@ -596,28 +595,6 @@ namespace CsMonkey
       }
 
       return list;
-    }
-
-    // PrefixExpression ::= "macro" "(" FunctionParameters "{" BlockStatement
-    private IExpression ParseMacroLiteral()
-    {
-      MacroLiteral literal = new MacroLiteral() { token = currentToken };
-
-      if(!ExpectPeek(Token.Type.LPAREN))
-      {
-        return null;
-      }
-
-      literal.parameters = ParseFunctionParameters();
-
-      if(!ExpectPeek(Token.Type.LBRACE))
-      {
-        return null;
-      }
-
-      literal.body = ParseBlockStatement();
-
-      return literal;
     }
   } // class
 } // namespace

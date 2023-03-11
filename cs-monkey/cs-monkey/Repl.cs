@@ -37,12 +37,8 @@ namespace CsMonkey
         // 評価器を起動
         Evaluator evaluator = new Evaluator();
 
-        // マクロを定義します
-        evaluator.DefineMacros(program, macroEnvironment);
-        Ast.INode expanded = evaluator.ExpandMacros(program, macroEnvironment);
-
         // 評価器で評価開始
-        IObject result =  evaluator.Eval(expanded, environment);
+        IObject result =  evaluator.Eval(program, environment);
         if(result != null)
         {
           // 評価結果がNullではなかった
