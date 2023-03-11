@@ -6,6 +6,6 @@
 
     public IObject.Type ObjectType => IObject.Type.ERROR_OBJ;
 
-    public string Inspect() => $"ERROR: {message}";
+    public string Inspect() => $"\t{message}";
   }
 }

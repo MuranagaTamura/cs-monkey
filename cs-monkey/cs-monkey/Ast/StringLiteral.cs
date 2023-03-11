@@ -7,6 +7,6 @@
 
     public string TokenLiteral => token.Literal;
 
-    public override string ToString() => TokenLiteral;
+    public override string ToString() => $"`{TokenLiteral}`";
   }
 }

@@ -10,6 +10,12 @@
       INTEGER_OBJ,
       NULL_OBJ,
       RETURN_VALUE_OBJ,
+      STRING_OBJ,
+      BULTIN_OBJ,
+      ARRAY_OBJ,
+      HASH_OBJ,
+      QUOTE_OBJ,
+      MACRO_OBJ,
     }
 
     Type ObjectType { get; }
