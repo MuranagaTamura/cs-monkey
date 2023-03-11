@@ -14,6 +14,8 @@
       BULTIN_OBJ,
       ARRAY_OBJ,
       HASH_OBJ,
+      QUOTE_OBJ,
+      MACRO_OBJ,
     }
 
     Type ObjectType { get; }
