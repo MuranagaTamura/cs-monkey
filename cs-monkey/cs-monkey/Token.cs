@@ -13,7 +13,6 @@ namespace CsMonkey
       { "if", Type.IF },
       { "else", Type.ELSE },
       { "return", Type.RETURN },
-      { "macro", Type.MACRO },
     };
 
     public static Type LookupIdent(string ident)
@@ -70,7 +69,6 @@ namespace CsMonkey
       IF,
       ELSE,
       RETURN,
-      MACRO,
     }
 
     public Type TokenType;
