@@ -196,6 +196,11 @@ namespace CsMonkey
       // 束縛対象の式をパースする
       statement.value = ParseExpression(Precedence.LOWEST);
 
+      if(statement.value is FunctionLiteral functionLiteral)
+      {
+        functionLiteral.name = statement.name.value;
+      }
+
       if (peekToken.TokenType == Token.Type.SEMICOLON)
         // ピークトークンが";"だった
         NextToken();

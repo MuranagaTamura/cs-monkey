@@ -1,6 +1,7 @@
 ﻿using CsMonkey.Ast;
 using CsMonkey.Object;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace CsMonkey
@@ -13,110 +14,12 @@ namespace CsMonkey
 
     private IDictionary<string, Builtin> builtins_ = new Dictionary<string, Builtin>()
       {
-        { "len", new Builtin(){ fn = (IList<IObject> args) => 
-          { 
-            if(args.Count != 1)
-            {
-              return new Error() { message = $"wrong number of arguments. got={args.Count}, want=1"};
-            }
-
-            switch(args[0])
-            {
-              case String @string:
-                {
-                  return new Integer(){ value = @string.value.Length };
-                }
-                case Array array:
-                {
-                  return new Integer(){ value = array.elements.Count };
-                }
-              default:
-                {
-                  return new Error() { message = $"argument to `len` not supported, got {args[0].ObjectType}" };
-                }
-            }
-          } } },
-        { "first", new Builtin() { fn = (IList<IObject> args) => 
-          {
-            if(args.Count != 1)
-            {
-              return new Error() { message = $"wrong number of arguments. got={args.Count}, want=1"};
-            }
-            if(args[0].ObjectType != IObject.Type.ARRAY_OBJ)
-            {
-              return new Error() { message = $"argument to `first` must be ARRAY, got {args[0].ObjectType}" };
-            }
-
-            if(args[0] is Array array && array.elements.Count > 0)
-            {
-              return array.elements[0];
-            }
-
-            return NULL;
-          } } },
-        { "last", new Builtin() { fn = (IList<IObject> args) => 
-          {
-            if(args.Count != 1)
-            {
-              return new Error() { message = $"wrong number of arguments. got={args.Count}, want=1"};
-            }
-            if(args[0].ObjectType != IObject.Type.ARRAY_OBJ)
-            {
-              return new Error() { message = $"argument to `last` must be ARRAY, got {args[0].ObjectType}" };
-            }
-
-            if(args[0] is Array array && array.elements.Count > 0)
-            {
-              return array.elements.Last();
-            }
-
-            return NULL;
-          } } },
-        { "rest", new Builtin() { fn = (IList<IObject> args) => 
-          {
-            if(args.Count != 1)
-            {
-              return new Error() { message = $"wrong number of arguments. got={args.Count}, want=1"};
-            }
-            if(args[0].ObjectType != IObject.Type.ARRAY_OBJ)
-            {
-              return new Error() { message = $"argument to `rest` must be ARRAY, got {args[0].ObjectType}" };
-            }
-
-            if(args[0] is Array array && array.elements.Count > 0)
-            {
-              IList<IObject> newEelements = new List<IObject>(array.elements);
-              newEelements.RemoveAt(0);
-              return new Array(){ elements = newEelements };
-            }
-
-            return NULL;
-          } } },
-        { "push", new Builtin(){ fn = (IList<IObject> args) => 
-          {
-            if(args.Count != 2)
-              {
-                return new Error() { message = $"wrong number of arguments. got={args.Count}, want=2"};
-              }
-              if(args[0].ObjectType != IObject.Type.ARRAY_OBJ)
-              {
-                return new Error() { message = $"argument to `push` must be ARRAY, got {args[0].ObjectType}" };
-              }
-
-              Array array = args[0] as Array;
-              long length = array.elements.Count;
-
-              IList<IObject> newElements = new List<IObject>(array.elements) { args[1] };
-              return new Array(){ elements = newElements };
-          } } },
-        { "puts", new Builtin(){ fn = (IList<IObject> args) => 
-          {
-            foreach(IObject arg in args)
-            {
-              System.Console.WriteLine(arg.Inspect());
-            }
-            return NULL;
-          } } },
+        { "len", BuiltinHelper.GetBuiltinByName("len") },
+        { "puts", BuiltinHelper.GetBuiltinByName("puts") },
+        { "first", BuiltinHelper.GetBuiltinByName("first") },
+        { "last", BuiltinHelper.GetBuiltinByName("last") },
+        { "rest", BuiltinHelper.GetBuiltinByName("rest") },
+        { "push", BuiltinHelper.GetBuiltinByName("push") },
       };
 
     public IObject Eval(INode node, Environment environment)
@@ -205,13 +108,13 @@ namespace CsMonkey
         case IndexExpression indexExpression:
           {
             IObject left = Eval(indexExpression.left, environment);
-            if(left is Error)
+            if (left is Error)
             {
               return left;
             }
             IObject index = Eval(indexExpression.index, environment);
-            if(index is Error)
-            { 
+            if (index is Error)
+            {
               return index;
             }
             return EvalIndexExpression(left, index);
@@ -227,7 +130,7 @@ namespace CsMonkey
         case ArrayLiteral arrayLiteral:
           {
             IList<IObject> elemets = EvalExpressions(arrayLiteral.elements, environment);
-            if(elemets.Count == 1 && elemets[0] is Error)
+            if (elemets.Count == 1 && elemets[0] is Error)
             {
               return elemets[0];
             }
@@ -282,7 +185,7 @@ namespace CsMonkey
 
     private IObject ApplyFunction(IObject fn, IList<IObject> args)
     {
-      switch(fn)
+      switch (fn)
       {
         case Function function:
           {
@@ -294,7 +197,11 @@ namespace CsMonkey
         case Builtin builtin:
           {
             // 組み込み関数
-            return builtin.fn(args);
+            if (builtin.fn(args) is IObject result && result != null)
+            {
+              return result;
+            }
+            return NULL;
           }
         default:
           {
@@ -327,7 +234,7 @@ namespace CsMonkey
         return value;
       }
 
-      if(builtins_.TryGetValue(identifier.value, out Builtin builtin))
+      if (builtins_.TryGetValue(identifier.value, out Builtin builtin))
       {
         return builtin;
       }
@@ -415,13 +322,14 @@ namespace CsMonkey
 
     private IObject EvalStringInfixExpression(string op, String left, String right)
     {
-      switch(op)
+      switch (op)
       {
         case "+": return new String() { value = left.value + right.value };
-        default: return new Error()
-        {
-          message = $"unknown operator: {left.ObjectType} {op} {right.ObjectType}"
-        };
+        default:
+          return new Error()
+          {
+            message = $"unknown operator: {left.ObjectType} {op} {right.ObjectType}"
+          };
       }
     }
 
@@ -510,12 +418,12 @@ namespace CsMonkey
 
     private IObject EvalIndexExpression(IObject left, IObject index)
     {
-      if(left.ObjectType == IObject.Type.ARRAY_OBJ && index.ObjectType == IObject.Type.INTEGER_OBJ)
+      if (left.ObjectType == IObject.Type.ARRAY_OBJ && index.ObjectType == IObject.Type.INTEGER_OBJ)
       {
         // 配列[整数]でした
         return EvalArrayIndexExpression(left, index);
       }
-      if(left.ObjectType == IObject.Type.HASH_OBJ)
+      if (left.ObjectType == IObject.Type.HASH_OBJ)
       {
         // 連想配列[ハッシュ可能なオブジェクト]でした
         return EvalHashIndexExpression(left, index);
@@ -529,7 +437,7 @@ namespace CsMonkey
       long indexObject = ((Integer)index).value;
       long max = arrayObject.elements.Count;
 
-      if(System.Math.Clamp(indexObject, 0, max) != indexObject)
+      if (System.Math.Clamp(indexObject, 0, max) != indexObject)
       {
         return NULL;
       }
@@ -540,12 +448,12 @@ namespace CsMonkey
     {
       Hash hashObject = (Hash)hash;
 
-      if(!(index is Hashable key))
+      if (!(index is Hashable key))
       {
         return new Error() { message = $"unusuable as hash key: {index.ObjectType}" };
       }
 
-      if(hashObject.pairs.TryGetValue(key.HashKey(), out HashPair pair))
+      if (hashObject.pairs.TryGetValue(key.HashKey(), out HashPair pair))
       {
         return pair.value;
       }
@@ -557,21 +465,21 @@ namespace CsMonkey
     {
       IDictionary<HashKey, HashPair> pairs = new Dictionary<HashKey, HashPair>();
 
-      foreach((IExpression keyNode, IExpression valueNode) in hashLiteral.pairs)
+      foreach ((IExpression keyNode, IExpression valueNode) in hashLiteral.pairs)
       {
         IObject key = Eval(keyNode, environment);
-        if(key is Error)
+        if (key is Error)
         {
           return key;
         }
 
-        if(!(key is Hashable hashKey))
+        if (!(key is Hashable hashKey))
         {
           return new Error() { message = $"unusable as hash key: {key.ObjectType}" };
         }
 
         IObject value = Eval(valueNode, environment);
-        if(value is Error)
+        if (value is Error)
         {
           return value;
         }

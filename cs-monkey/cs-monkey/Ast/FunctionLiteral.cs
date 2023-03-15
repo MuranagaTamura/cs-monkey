@@ -7,9 +7,10 @@ namespace CsMonkey.Ast
     public Token token;
     public IList<Identifier> parameters = new List<Identifier>();
     public BlockStatement body;
+    public string name;
 
     public string TokenLiteral => token.Literal;
 
-    public override string ToString() => $"{TokenLiteral}({string.Join(", ", parameters)}){body}";
+    public override string ToString() => $"{TokenLiteral}{(name != "" ? $"<{name}>" : "")}({string.Join(", ", parameters)}){body}";
   }
 }

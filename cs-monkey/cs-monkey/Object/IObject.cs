@@ -14,6 +14,8 @@
       BULTIN_OBJ,
       ARRAY_OBJ,
       HASH_OBJ,
+      COMPILED_FUNCTION_OBJ,
+      CLOSURE_OBJ,
     }
 
     Type ObjectType { get; }
