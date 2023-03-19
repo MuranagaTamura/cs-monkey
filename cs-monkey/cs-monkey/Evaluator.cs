@@ -54,7 +54,7 @@ namespace CsMonkey
             return new ReturnValue() { value = value };
           }
         // 式
-        case Ast.Boolean boolean:
+        case Ast.BooleanLiteral boolean:
           {
             return NativeBooleanObject(boolean.value);
           }

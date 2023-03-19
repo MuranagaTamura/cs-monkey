@@ -32,7 +32,7 @@ namespace CsMonkey.Compiler
     {
       symbolTable = new SymbolTable();
 
-      for(int i = 0; i < BuiltinHelper.builtins.Count; ++i)
+      for (int i = 0; i < BuiltinHelper.builtins.Count; ++i)
       {
         symbolTable.DefineBuiltin(i, BuiltinHelper.builtins[i].name);
       }
@@ -107,7 +107,7 @@ namespace CsMonkey.Compiler
             {
               return (success, message);
             }
-            if(symbol.scope == Symbol.GLOBAL_SCOPE)
+            if (symbol.scope == Symbol.GLOBAL_SCOPE)
             {
               Emit(Opcode.OpSetGlobal, symbol.index);
             }
@@ -120,7 +120,7 @@ namespace CsMonkey.Compiler
         case ReturnStatement returnStatement:
           {
             (success, message) = Compile(returnStatement.returnValue);
-            if(!success)
+            if (!success)
             {
               return (success, message);
             }
@@ -281,13 +281,13 @@ namespace CsMonkey.Compiler
         case IndexExpression indexExpression:
           {
             (success, message) = Compile(indexExpression.left);
-            if(!success)
+            if (!success)
             {
               return (success, message);
             }
 
             (success, message) = Compile(indexExpression.index);
-            if(!success)
+            if (!success)
             {
               return (success, message);
             }
@@ -298,15 +298,15 @@ namespace CsMonkey.Compiler
         case CallExpression callExpression:
           {
             (success, message) = Compile(callExpression.function);
-            if(!success)
+            if (!success)
             {
               return (success, message);
             }
 
-            foreach(IExpression argument in callExpression.arguments)
+            foreach (IExpression argument in callExpression.arguments)
             {
               (success, message) = Compile(argument);
-              if(!success)
+              if (!success)
               {
                 return (success, message);
               }
@@ -331,7 +331,7 @@ namespace CsMonkey.Compiler
             Emit(Opcode.OpConstant, AddConstant(integer));
             return (true, "");
           }
-        case Ast.Boolean boolean:
+        case BooleanLiteral boolean:
           {
             if (boolean.value)
             {
@@ -367,12 +367,12 @@ namespace CsMonkey.Compiler
             foreach ((IExpression key, IExpression value) in hashLiteral.pairs)
             {
               (success, message) = Compile(key);
-              if(!success)
+              if (!success)
               {
                 return (success, message);
               }
               (success, message) = Compile(value);
-              if(!success)
+              if (!success)
               {
                 return (success, message);
               }
@@ -384,7 +384,7 @@ namespace CsMonkey.Compiler
           {
             EnterScope();
 
-            if(functionLiteral.name != "")
+            if (functionLiteral.name != "")
             {
               symbolTable.DefineFunctionName(functionLiteral.name);
             }
@@ -393,18 +393,18 @@ namespace CsMonkey.Compiler
             {
               symbolTable.Define(parameter.value);
             }
-            
+
             (success, message) = Compile(functionLiteral.body);
-            if(!success)
+            if (!success)
             {
               return (success, message);
             }
 
-            if(LastInstructionIs(Opcode.OpPop))
+            if (LastInstructionIs(Opcode.OpPop))
             {
               ReplaceLastPopWithReturn();
             }
-            if(!LastInstructionIs(Opcode.OpReturnValue))
+            if (!LastInstructionIs(Opcode.OpReturnValue))
             {
               Emit(Opcode.OpReturn);
             }
@@ -413,7 +413,7 @@ namespace CsMonkey.Compiler
             int numLocals = symbolTable.numDefinitions;
             IList<byte> instructions = LeaveScope();
 
-            foreach(Symbol symbol in freeSymbols)
+            foreach (Symbol symbol in freeSymbols)
             {
               LoadSymbol(symbol);
             }
@@ -435,8 +435,16 @@ namespace CsMonkey.Compiler
 
     private int AddConstant(IObject @object)
     {
-      constants.Add(@object);
-      return constants.Count - 1;
+      int index = constants.IndexOf(@object);
+      if (index != -1)
+      {
+        return index;
+      }
+      else
+      {
+        constants.Add(@object);
+        return constants.Count - 1;
+      }
     }
 
     private int Emit(Opcode op, params int[] oprands)
@@ -495,7 +503,7 @@ namespace CsMonkey.Compiler
         @new.RemoveAt(index);
       }
 
-      scopes[scopeIndex].instructions= @new;
+      scopes[scopeIndex].instructions = @new;
       scopes[scopeIndex].lastInstruction = prev;
     }
 
@@ -548,14 +556,14 @@ namespace CsMonkey.Compiler
 
     private void LoadSymbol(Symbol symbol)
     {
-      switch(symbol.scope)
+      switch (symbol.scope)
       {
         case Symbol.GLOBAL_SCOPE:
           {
             Emit(Opcode.OpGetGlobal, symbol.index);
             break;
           }
-          case Symbol.LOCAL_SCOPE: 
+        case Symbol.LOCAL_SCOPE:
           {
             Emit(Opcode.OpGetLocal, symbol.index);
             break;

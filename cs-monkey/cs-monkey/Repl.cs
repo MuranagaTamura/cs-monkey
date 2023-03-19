@@ -1,6 +1,7 @@
 ﻿using CsMonkey.Code;
 using CsMonkey.Compiler;
 using CsMonkey.Object;
+using CsMonkey.Optimise;
 using System;
 using System.Collections.Generic;
 
@@ -40,6 +41,9 @@ namespace CsMonkey
           PrintParseErrors(parser.errors);
           continue;
         }
+
+        // 最適化を行います
+        program = OptimiseHelper.Optimise(program);
 
         // コンパイルします
         Compiler.Compiler compiler = Compiler.Compiler.WithState(symbolTable, constants);

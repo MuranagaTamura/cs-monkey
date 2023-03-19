@@ -290,9 +290,9 @@ namespace CsMonkey
 
     // PrefixExpression ::= "true"
     //                    | "false"
-    private Ast.Boolean ParseBoolean()
+    private Ast.BooleanLiteral ParseBoolean()
     {
-      return new Ast.Boolean()
+      return new Ast.BooleanLiteral()
       {
         token = currentToken,
         value = currentToken.TokenType == Token.Type.TRUE

@@ -1,6 +1,6 @@
 ﻿namespace CsMonkey.Ast
 {
-  public class Boolean : IExpression
+  public class BooleanLiteral : IExpression
   {
     public Token token;
     public bool value;
